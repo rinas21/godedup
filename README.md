@@ -20,17 +20,31 @@
 
 ## 🚀 Installation
 
-1. Download and install Go: https://golang.org/dl/
-2. Clone this repo:
-
 ```bash
 git clone https://github.com/rinas21/godedup
 cd godedup
 ```
 
 ## Run the project
+
 ### Build the project
+
 ```bash
 go build -o godedup dedup.go
 ```
 
+---
+
+## 📝 Usage
+
+To find duplicate files in specific directories, run:
+
+```bash
+go run dedup.go /dir /dir2
+```
+
+Or, if you have built the binary:
+
+```bash
+./godedup /dir /dir2
+```
