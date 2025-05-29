@@ -1,6 +1,3 @@
-// dedup.go - A simple duplicate file finder using SHA-256 hashing.
-// Usage: go run dedup.go [directory]
-
 package main
 
 import (
@@ -52,44 +49,52 @@ func getChangeTime(info os.FileInfo) time.Time {
 }
 
 func main() {
-	// Parse directory from command-line flags
-	dir := flag.String("dir", ".", "Directory to scan for duplicates")
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [directory...]\nFind duplicate files in one or more directories.\n", os.Args[0])
+		flag.PrintDefaults()
+	}
 	flag.Parse()
+
+	dirs := flag.Args()
+	if len(dirs) == 0 {
+		fmt.Fprintln(os.Stderr, "Error: Please specify at least one directory.")
+		os.Exit(1)
+	}
 
 	hashMap := make(map[string][]FileInfo)
 
-	// Walk through the directory tree
-	err := filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: cannot access %s: %v\n", path, err)
-			return nil
-		}
+	// Walk through each directory provided
+	for _, dir := range dirs {
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: cannot access %s: %v\n", path, err)
+				return nil
+			}
 
-		// Skip non-regular files
-		if !info.Mode().IsRegular() {
-			return nil
-		}
+			// Skip non-regular files
+			if !info.Mode().IsRegular() {
+				return nil
+			}
 
-		hash, err := hashFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: error hashing %s: %v\n", path, err)
-			return nil
-		}
+			hash, err := hashFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: error hashing %s: %v\n", path, err)
+				return nil
+			}
 
-		// Collect file info
-		hashMap[hash] = append(hashMap[hash], FileInfo{
-			Path:       path,
-			Size:       info.Size(),
-			ModTime:    info.ModTime(),
-			ChangeTime: getChangeTime(info),
+			hashMap[hash] = append(hashMap[hash], FileInfo{
+				Path:       path,
+				Size:       info.Size(),
+				ModTime:    info.ModTime(),
+				ChangeTime: getChangeTime(info),
+			})
+
+			return nil
 		})
 
-		return nil
-	})
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error walking the path %q: %v\n", *dir, err)
-		os.Exit(1)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error walking the path %q: %v\n", dir, err)
+		}
 	}
 
 	// Print duplicates
@@ -98,7 +103,17 @@ func main() {
 			continue
 		}
 
+		// Collect unique parent directories
+		parentDirs := make(map[string]struct{})
+		for _, fi := range files {
+			parentDirs[filepath.Dir(fi.Path)] = struct{}{}
+		}
+
 		fmt.Printf("\nDuplicate Hash: %s\n", hash)
+		if len(parentDirs) > 1 {
+			fmt.Println("  ** Found duplicates across multiple directories! **")
+		}
+
 		for _, fi := range files {
 			fmt.Printf("  - %s\n", fi.Path)
 			fmt.Printf("      Size: %d bytes\n", fi.Size)

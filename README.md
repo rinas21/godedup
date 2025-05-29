@@ -27,3 +27,10 @@
 git clone https://github.com/rinas21/godedup
 cd godedup
 ```
+
+## Run the project
+### Build the project
+```bash
+go build -o godedup dedup.go
+```
+
