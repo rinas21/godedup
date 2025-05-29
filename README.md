@@ -24,6 +24,6 @@
 2. Clone this repo:
 
 ```bash
-git clone https://github.com/yourusername/godedup.git
+git clone https://github.com/rinas21/godedup
 cd godedup
-
+```
